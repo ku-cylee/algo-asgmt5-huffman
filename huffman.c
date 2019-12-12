@@ -20,20 +20,42 @@ typedef struct
 
 ////////////////////////////////////////////////////////////////////////////////
 // 허프만 코드 메모리 해제
-void free_huffman_code( char *codes[]);
+void free_huffman_code( char *codes[]) {
+	int i;
+	for (i = 0; i < 256; i++) free(codes[i]);
+}
 
 // 텍스트 파일을 허프만 코드를 이용하여 바이터리 파일로 인코딩
 // return value : 인코딩된 파일의 바이트 수
-int encoding( char *codes[], FILE *infp, FILE *outfp);
+int encoding( char *codes[], FILE *infp, FILE *outfp) {
+	int c, size = 0;
+	while ((c = fgetc(infp)) != EOF) {
+		fputs(codes[c], outfp);
+		size += strlen(codes[c]);
+	}
+	fflush(outfp);
+	return size / 8;
+}
 
 // 바이너리 파일을 허프만 트리를 이용하여 텍스트 파일로 디코딩
-void decoding( tNode *root, FILE *infp, FILE *outfp);
+void decoding( tNode *root, FILE *infp, FILE *outfp) {
+	int c = 0;
+	tNode *cursor = root;
+	while ((c = fgetc(infp)) != EOF) {
+		cursor = (c == '0') ? cursor->left : cursor->right;
+		if (cursor->left || cursor->right) continue;
+
+		fputc(cursor->data, outfp);
+		cursor = root;
+	}
+	fflush(outfp);
+}
 
 // 파일에 속한 각 문자(바이트)의 빈도 저장
 // return value : 파일에서 읽은 바이트 수
 int read_chars( FILE *fp, int *ch_freq) {
     int c;
-    size_t size;
+    size_t size = 0;
     while ((c = fgetc(fp)) != EOF) {
         ch_freq[c]++;
         size++;
@@ -222,7 +244,11 @@ void make_huffman_code( tNode *root, char *codes[]) {
 }
 
 // 트리 메모리 해제
-void destroyTree( tNode *root);
+void destroyTree( tNode *root) {
+	if (root->left) destroyTree(root->left);
+	if (root->right) destroyTree(root->right);
+	free(root);
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // 힙의 내용 출력 (for debugging)
@@ -326,10 +352,10 @@ int main( int argc, char **argv)
 	outfp = fopen( argv[2], "wt");
 	
 	// 허프만코드를 이용하여 인코딩(압축)
-	//int encoded_bytes = encoding( codes, infp, outfp);
+	int encoded_bytes = encoding( codes, infp, outfp);
 
 	// 허프만 코드 메모리 해제
-	//free_huffman_code( codes);
+	free_huffman_code( codes);
 	
 	fclose( infp);
 	fclose( outfp);
@@ -341,18 +367,18 @@ int main( int argc, char **argv)
 	outfp = fopen( argv[3], "wt");
 
 	// 허프만 트리를 이용하여 디코딩
-	//decoding( huffman_tree, infp, outfp);
+	decoding( huffman_tree, infp, outfp);
 
 	// 허프만 트리 메모리 해제
-	//destroyTree( huffman_tree);
+	destroyTree( huffman_tree);
 
 	fclose( infp);
 	fclose( outfp);
 
 	////////////////////////////////////////
-	//printf( "# of bytes of the original text = %d\n", num_bytes);
-	//printf( "# of bytes of the compressed text = %d\n", encoded_bytes);
-	//printf( "compression ratio = %.2f\n", ((float)num_bytes - encoded_bytes) / num_bytes * 100);
+	printf( "# of bytes of the original text = %d\n", num_bytes);
+	printf( "# of bytes of the compressed text = %d\n", encoded_bytes);
+	printf( "compression ratio = %.2f\n", ((float)num_bytes - encoded_bytes) / num_bytes * 100);
 	
 	return 0;
 }
