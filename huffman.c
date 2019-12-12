@@ -62,9 +62,12 @@ HEAP *heapCreate( int capacity) {
 	heap = (HEAP *)malloc(sizeof(HEAP));
 	if (!heap) return NULL;
 
+	int i;
 	heap->last = -1;
 	heap->capacity = capacity;
-	heap->heapArr = (tNode *)malloc(sizeof(tNode) * capacity);
+	heap->heapArr = (tNode **)malloc(sizeof(tNode *) * capacity);
+	for (i = 0; i < capacity; i++) heap->heapArr[i] = (tNode *)malloc(sizeof(tNode));
+
 	if (heap->heapArr == NULL)
 	{
 		fprintf( stderr, "Error : not enough memory!\n");
@@ -171,16 +174,52 @@ void heapDestroy( HEAP *heap) {
 // 결합 후 새 노드에 추가
 // 힙에 삽입
 // 힙에 한개의 노드가 남을 때까지 반복
-tNode *make_huffman_tree( int *ch_freq);
+tNode *make_huffman_tree( int *ch_freq) {
+	int i;
+	HEAP *huffmanHeap = heapCreate(256);
+
+	for (i = 0; i < 256; i++) {
+		tNode *node = newNode(i, ch_freq[i]);
+		heapInsert(huffmanHeap, node);
+	}
+
+	tNode *node1 = NULL, *node2 = NULL, *tmpNode;
+	for (i = 0; i < 255; i++) {
+		node1 = heapDelete(huffmanHeap);
+		node2 = heapDelete(huffmanHeap);
+		tNode* tmpNode = newNode(0, node1->freq + node2->freq);
+		tmpNode->left = node1;
+		tmpNode->right = node2;
+		heapInsert(huffmanHeap, tmpNode);
+	}
+
+	return huffmanHeap->heapArr[0];
+}
 
 // 허프만 트리를 순회하며 허프만 코드를 생성하여 codes에 저장
 // leaf 노드에서만 코드를 생성
 // strdup 함수 사용함
-void traverse_tree( tNode *root, char *code, int depth, char *codes[]);
+void traverse_tree( tNode *root, char *code, int depth, char *codes[]) {
+	if (root->left || root->right) {
+		// case not leaf node
+		code[depth] = '0';
+		traverse_tree(root->left, code, depth + 1, codes);
+
+		code[depth] = '1';
+		traverse_tree(root->right, code, depth + 1, codes);
+	} else {
+		// case leaf node
+		codes[root->data] = strdup(code);
+	}
+	code[depth] = 0;
+}
 
 // 허프만 트리로부터 허프만 코드를 생성
 // traverse_tree 함수 호출
-void make_huffman_code( tNode *root, char *codes[]);
+void make_huffman_code( tNode *root, char *codes[]) {
+	char code[256] = {0, };
+	traverse_tree(root, code, 0, codes);
+}
 
 // 트리 메모리 해제
 void destroyTree( tNode *root);
@@ -219,9 +258,9 @@ tNode *run_huffman( int *ch_freq, char *codes[])
 {
 	tNode *root;
 	
-	//root = make_huffman_tree( ch_freq);
+	root = make_huffman_tree( ch_freq);
 	
-	//make_huffman_code( root, codes);
+	make_huffman_code( root, codes);
 	
 	return root;
 }
@@ -275,10 +314,10 @@ int main( int argc, char **argv)
 	//print_char_freq( ch_freq);
 	
 	// 허프만 코드/트리 생성
-	//huffman_tree = run_huffman( ch_freq, codes);
+	huffman_tree = run_huffman( ch_freq, codes);
 	
 	// 허프만 코드 출력 (stdout)
-	//print_huffman_code( codes);
+	print_huffman_code( codes);
 
 	////////////////////////////////////////
 	// 입력: 텍스트 파일
