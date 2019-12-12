@@ -215,7 +215,15 @@ tNode *make_huffman_tree( int *ch_freq) {
 		heapInsert(huffmanHeap, tmpNode);
 	}
 
-	return huffmanHeap->heapArr[0];
+	tNode *topNode = huffmanHeap->heapArr[0];
+	tNode *rootNode = newNode(topNode->data, topNode->freq);
+	rootNode->left = topNode->left;
+	rootNode->right = topNode->right;
+
+	topNode->left = topNode->right = NULL;
+	heapDestroy(huffmanHeap);
+
+	return rootNode;
 }
 
 // 허프만 트리를 순회하며 허프만 코드를 생성하여 codes에 저장
