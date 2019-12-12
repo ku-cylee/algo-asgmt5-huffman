@@ -184,7 +184,7 @@ tNode *heapDelete( HEAP *heap) {
 
 // 힙 메모리 해제
 void heapDestroy( HEAP *heap) {
-    free(heap->heapArr);
+	free(heap->heapArr);
 	free(heap);
 }
 
@@ -216,14 +216,9 @@ tNode *make_huffman_tree( int *ch_freq) {
 	}
 
 	tNode *topNode = huffmanHeap->heapArr[0];
-	tNode *rootNode = newNode(topNode->data, topNode->freq);
-	rootNode->left = topNode->left;
-	rootNode->right = topNode->right;
-
-	topNode->left = topNode->right = NULL;
 	heapDestroy(huffmanHeap);
 
-	return rootNode;
+	return topNode;
 }
 
 // 허프만 트리를 순회하며 허프만 코드를 생성하여 codes에 저장
@@ -231,14 +226,12 @@ tNode *make_huffman_tree( int *ch_freq) {
 // strdup 함수 사용함
 void traverse_tree( tNode *root, char *code, int depth, char *codes[]) {
 	if (root->left || root->right) {
-		// case not leaf node
 		code[depth] = '0';
 		traverse_tree(root->left, code, depth + 1, codes);
 
 		code[depth] = '1';
 		traverse_tree(root->right, code, depth + 1, codes);
 	} else {
-		// case leaf node
 		codes[root->data] = strdup(code);
 	}
 	code[depth] = 0;
