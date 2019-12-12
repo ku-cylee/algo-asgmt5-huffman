@@ -31,34 +31,137 @@ void decoding( tNode *root, FILE *infp, FILE *outfp);
 
 // 파일에 속한 각 문자(바이트)의 빈도 저장
 // return value : 파일에서 읽은 바이트 수
-int read_chars( FILE *fp, int *ch_freq);
+int read_chars( FILE *fp, int *ch_freq) {
+    int c;
+    size_t size;
+    while ((c = fgetc(fp)) != EOF) {
+        ch_freq[c]++;
+        size++;
+    }
+    return size;
+}
 
 // 새로운 노드를 생성
 // 좌/우 subtree가 NULL이고 빈도값(freq)이 저장됨
 // return value : 노드의 포인터
-tNode *newNode(char data, int freq);
+tNode *newNode(char data, int freq) {
+    tNode *node = (tNode *)malloc(sizeof(tNode));
+    node->left = NULL;
+    node->right = NULL;
+    node->data = data;
+    node->freq = freq;
+    return node;
+}
 
 // 힙 생성
 // 배열을 위한 메모리 할당 (capacity)
 // last = -1
-HEAP *heapCreate( int capacity);
+HEAP *heapCreate( int capacity) {
+    HEAP *heap;
+	
+	heap = (HEAP *)malloc(sizeof(HEAP));
+	if (!heap) return NULL;
+
+	heap->last = -1;
+	heap->capacity = capacity;
+	heap->heapArr = (tNode *)malloc(sizeof(tNode) * capacity);
+	if (heap->heapArr == NULL)
+	{
+		fprintf( stderr, "Error : not enough memory!\n");
+		free( heap);
+		return NULL;
+	}
+	return heap;
+}
 
 // 최소힙 유지
-void _reheapUp( HEAP *heap, int index);
+void _reheapUp( HEAP *heap, int index) {
+    tNode **arr = heap->heapArr;
+	int parent;
+	
+	while(1)
+	{
+		if (index == 0) return;
+		
+		parent = (index - 1) / 2;
+		
+		if (arr[index]->freq < arr[parent]->freq) {
+			tNode *temp = arr[index];
+			arr[index] = arr[parent];
+			arr[parent] = temp;
+			
+			index = parent;
+		}
+		else return;
+	}
+}
 
 // 힙에 원소 삽입
 // _reheapUp 함수 호출
-int heapInsert( HEAP *heap, tNode *data);
+int heapInsert( HEAP *heap, tNode *data) {
+    if (heap->last == heap->capacity - 1)
+		return 0;
+	
+	heap->heapArr[++heap->last] = data;
+
+	_reheapUp(heap, heap->last);
+	
+	return 1;
+}
 
 // 최소힙 유지
-void _reheapDown( HEAP *heap, int index);
+void _reheapDown( HEAP *heap, int index) {
+    tNode **arr = heap->heapArr;
+	tNode *leftData;
+	tNode *rightData;
+	int noright = 0;
+	int smallestIndex; 
+	
+	while(1)
+	{
+		if ((index * 2 + 1) > heap->last) return; // leaf node (there is no left subtree)
+		leftData = arr[index * 2 + 1];
+
+		if (index * 2 + 2 <= heap->last) rightData = arr[index * 2 + 2];
+		else noright = 1;
+		
+		if (noright || leftData->freq < rightData->freq) smallestIndex = index * 2 + 1; // left child
+		else smallestIndex = index * 2 + 2; // right child
+		
+		if (arr[index]->freq > arr[smallestIndex]->freq) // exchange (for maxheap)
+		{
+			tNode* temp = arr[index];
+			arr[index] = arr[smallestIndex];
+			arr[smallestIndex] = temp;
+			
+			index = smallestIndex;
+			
+			noright = 0;
+		}
+		else return;
+	}
+}
 
 // 최소값 제거
 // heapDelete 함수 호출
-tNode *heapDelete( HEAP *heap);
+tNode *heapDelete( HEAP *heap) {
+    if (heap->last == -1) return NULL; // empty heap
+	
+	tNode *data = heap->heapArr[0];
+	heap->heapArr[0] = heap->heapArr[heap->last];
+	
+	(heap->last)--;
+	
+	_reheapDown(heap, 0);
+
+    return data;
+}
 
 // 힙 메모리 해제
-void heapDestroy( HEAP *heap);
+void heapDestroy( HEAP *heap) {
+    free(heap->heapArr);
+	free(heap);
+}
 
 // 문자별 허프만 트리를 생성
 // capacity 256 짜리 빈(empty) 힙 생성
@@ -164,7 +267,7 @@ int main( int argc, char **argv)
 
 	// 텍스트 파일로부터 문자별 빈도 저장
 	// getc 함수 호출
-	//int num_bytes = read_chars( fp, ch_freq);
+	int num_bytes = read_chars( fp, ch_freq);
 
 	fclose( fp);
 
